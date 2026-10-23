@@ -107,10 +107,11 @@ class XAgenticHunter:
         for query in SEARCH_QUERIES:
             try:
                 tweets = await self.client.search_tweet(query, 'Latest', count=5)
-                for tw in tweets:
-                    if tw.id in self.seen_tweet_ids:
+                for tw in (tweets or []):
+                    tw_id = getattr(tw, "id", None)
+                    if not tw_id or tw_id in self.seen_tweet_ids:
                         continue
-                    self.seen_tweet_ids.add(tw.id)
+                    self.seen_tweet_ids.add(tw_id)
 
                     text = tw.text or ""
                     user = getattr(tw, "user", None)
@@ -241,5 +242,8 @@ class XAgenticHunter:
         print("🎧 Memantau tweet baru real-time... (Ctrl+C untuk berhenti)\n")
 
         while True:
-            await self.poll_once()
+            try:
+                await self.poll_once()
+            except Exception as e:
+                print(f"⚠️ [RECOVERED LOOP NOTICE]: {e}")
             await asyncio.sleep(interval_seconds)
