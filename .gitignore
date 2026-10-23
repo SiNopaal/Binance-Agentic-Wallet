@@ -1,0 +1,34 @@
+# ====================================================================
+# Git Ignore for Binance Agentic Wallet & Airdrop Sniper
+# ====================================================================
+
+# Secrets & Environment
+.env
+*.env
+*.session
+*.session-journal
+Telegram Session/
+accounts.json
+
+# Local scan history & runtime logs
+detected_agentic_airdrops.json
+*.log
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# BAW Local Node Profiles & Data
+node_modules/
+profiles/
+backups/
+session.json
+npm-debug.log*
+
+# System & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

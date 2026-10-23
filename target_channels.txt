@@ -1,0 +1,12 @@
+# ====================================================================
+# DAFTAR CHANNEL & GRUP TELEGRAM TARGET (WHITELIST EKSKLUSIF USER)
+# ====================================================================
+# Hanya 5 grup pilihan ini yang akan dipantau secara ketat.
+# Semua grup/chat lainnya 100% diabaikan.
+# ====================================================================
+
+@AirdropUmbrellaX
+@airdropnexgenid
+@AirdropBit_ID
+@airdropcloudJP
+@AirdropFamilyIDN
