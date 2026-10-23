@@ -34,6 +34,12 @@ flowchart TD
         X["Twitter / X Scraper\n(Twikit Keyword Stream)"]
     end
 
+    subgraph FreshnessGate["⏱️ Freshness & Anti-Sold-Out Gate"]
+        F1["30-Minute Age Filter\n(created_at <= 30 mins)"]
+        F2["Cold-Start Warmup\n(Index Existing Tweets on Boot)"]
+        F3["Sold-Out / Ended Signal Filter"]
+    end
+
     subgraph DetectionEngine["🧠 AI & Agentic Classification"]
         D1["Keyword & Weight Engine\n(High/Med/Action Scores)"]
         D2["BSC RPC Bytecode Inspector\n(Selector Verification)"]
@@ -58,8 +64,9 @@ flowchart TD
         SELL["Auto-Seller & Portfolio Cleaner\n(Instant DEX Market Swap to BNB)"]
     end
 
-    TG --> D1
-    X --> D1
+    TG --> FreshnessGate
+    X --> FreshnessGate
+    FreshnessGate -->|Fresh Post| D1
     D1 --> D2 --> D3
     D3 --> SecurityGuard
     SecurityGuard -->|Verified & Safe| Execution
@@ -75,23 +82,28 @@ flowchart TD
    - **Telegram Streamer**: Asynchronously listens only to whitelisted alpha channels (e.g., Airdrop Umbrella, Bit_ID, NexGen, CloudJP, FamilyIDN). All noise and spam groups are discarded.
    - **Twitter / X Streamer**: Live keyword queries tracking Binance Agentic Wallet, `.ai` domains, ERC-6551 tokens, and Agent ID contracts.
 
-2. **3-Layer Agentic & `.ai` Filter**:
+2. **Freshness Gate & Anti-Sold-Out Protection**:
+   - **30-Minute Time Window**: Tweets older than 30 minutes are automatically blocked from auto-minting, preventing failed transactions on sold-out drops.
+   - **Cold-Start Bootstrapping**: On startup, existing historical tweets are indexed as baseline so only brand-new, live tweets trigger actions.
+   - **Sold-Out Regex Filter**: Instant rejection of posts announcing "sold out", "all minted", "claim ended", or "whitelist closed".
+
+3. **3-Layer Agentic & `.ai` Filter**:
    - Regex-based scoring across high/medium priority keywords.
    - Live BSC RPC inspection verifying contract bytecode and known mint/claim function selectors (`0x8580974c`, `0x1249c58b`, `0xa0712d68`, etc.).
    - Web scraper analyzing external dApp landing pages for AI-agent signals.
 
-3. **Multi-Profile Concurrent Engine**:
+4. **Multi-Profile Concurrent Engine**:
    - Run up to 3 (or more) Binance Agentic Wallets concurrently on the same machine.
    - Completely circumvents Windows Keytar credential overwriting and session collisions.
 
-4. **Zero-Cost Free Mint Enforcer**:
+5. **Zero-Cost Free Mint Enforcer**:
    - Transactions requiring native BNB payment (`value > 0`) are instantly rejected.
    - Wallet balances are **strictly reserved for gas fees only**.
 
-5. **Post-Mint Auto-Revoke**:
+6. **Post-Mint Auto-Revoke**:
    - Immediately following every mint or claim transaction, the executor queries on-chain token allowances and executes `approvals revoke` across all spender addresses.
 
-6. **Autonomous DEX Liquidation (Auto-Seller)**:
+7. **Autonomous DEX Liquidation (Auto-Seller)**:
    - Scans wallet balances across all accounts.
    - Automatically queries PancakeSwap DEX quotes and liquidates freshly minted tokens into native BNB while protecting valuable passes and relics.
 
@@ -103,10 +115,11 @@ The suite operates under a **Zero-Trust Security Principle** to protect wallet f
 
 | Layer | Mechanism | Protection Scope |
 | :--- | :--- | :--- |
-| **Tier 1: Local Code Enforcer** | Pre-flight validation | Any transaction with `value > 0` is aborted immediately. |
-| **Tier 2: Function Selector Guard** | Bytecode inspection | Blocks trap selectors: `approve()` (`0x095ea7b3`), `setApprovalForAll()` (`0xa22cb465`), `permit()` (`0xd505accf`). |
-| **Tier 3: Node Simulation** | Live RPC simulation | Tests contract call with `--value 0`. If contract requires payment or reverts, simulation fails and no transaction is signed. |
-| **Tier 4: Post-Mint Auto-Revoke** | Automated allowance sweep | Clears any residual or unauthorized token allowances after execution. |
+| **Tier 1: Freshness & Supply Gate** | Age limit & Sold-Out detector | Rejects stale posts (>30 mins) and closed mints to prevent reverted tx fees. |
+| **Tier 2: Local Code Enforcer** | Pre-flight validation | Any transaction with `value > 0` is aborted immediately. |
+| **Tier 3: Function Selector Guard** | Bytecode inspection | Blocks trap selectors: `approve()` (`0x095ea7b3`), `setApprovalForAll()` (`0xa22cb465`), `permit()` (`0xd505accf`). |
+| **Tier 4: Node Simulation** | Live RPC simulation | Tests contract call with `--value 0`. If contract requires payment or reverts, simulation fails and no transaction is signed. |
+| **Tier 5: Post-Mint Auto-Revoke** | Automated allowance sweep | Clears any residual or unauthorized token allowances after execution. |
 
 ---
 
@@ -137,8 +150,8 @@ Binance-Agentic-Wallet/
 ├── security_guard.py               # 4-Tier Anti-Drainer and Scam detector
 ├── executor.py                     # Multi-wallet free-mint runner & auto-revoker
 ├── auto_seller.py                  # DEX market liquidation to native BNB
-├── telegram_listener.py            # Telethon async Telegram monitor
-├── x_listener.py                   # Twikit Twitter/X scraper with author auditor
+├── telegram_listener.py            # Telethon async Telegram monitor (with freshness gate)
+├── x_listener.py                   # Twikit Twitter/X scraper (with 30m age filter)
 ├── audit_system.py                 # Automated 7-point pre-flight audit suite
 ├── main.py                         # Unified daemon entrypoint
 │
@@ -209,6 +222,9 @@ TWITTER_ACCOUNT_NAME=your_username
 TWITTER_AUTH_TOKEN=
 TWITTER_CT0=
 
+# Freshness & Sold-Out Protection
+MAX_TWEET_AGE_MINUTES=30
+
 # Multi-Wallet Setup
 WALLET_1_NAME=Account 1
 WALLET_1_CMD=baw1
@@ -269,10 +285,10 @@ The project includes an integrated audit script (`audit_system.py`) that perform
 
 1. **BSC RPC Connectivity**: Verifies Web3 connection to Chain ID 56.
 2. **BAW Multi-Wallet Status**: Audits gas balances and active CLI wrappers for all 3 accounts.
-3. **Agentic & .ai Detector Accuracy**: Tests AI-agent detection vs spam rejection.
+3. **Agentic, .ai & Sold-Out Detector Accuracy**: Tests AI-agent detection vs spam & sold-out rejection.
 4. **Anti-Scam & Drainer Blocker**: Verifies immediate blocking of drainer selectors and phishing domains.
 5. **Zero-Cost Free-Mint Gating**: Ensures paid transactions are strictly rejected.
-6. **Listener Credentials**: Verifies Telegram and X session viability.
+6. **Listener Credentials & Freshness Guard**: Verifies Telegram/X sessions and the 30-minute freshness limit.
 7. **Post-Mint Auto-Revoke**: Tests on-chain allowance queries and revocation mechanisms.
 
 ---
@@ -282,6 +298,8 @@ The project includes an integrated audit script (`audit_system.py`) that perform
 **Binance Agentic Wallet & Airdrop Sniper** adalah sistem automasi cerdas untuk memburu dan melakukan klaim free-mint airdrop di jaringan BNB Chain, khususnya garapan berbasis AI Agent dan domain `.ai`.
 
 ### Fitur Unggulan:
+- **Freshness Guard (Batas 30 Menit)**: Otomatis menolak auto-mint untuk tweet/pesan yang sudah berumur > 30 menit. Mencegah kegagalan transaksi dan buang-buang gas fee akibat garapan yang sudah ludes (*Sold Out*).
+- **Cold-Start Bootstrapping**: Saat bot baru dinyalakan, bot secara otomatis meng-indeks tweet lama sebagai baseline sehingga murni hanya menyikat tweet yang baru lahir secara real-time.
 - **3 Akun Multi-Wallet Serentak**: Menjalankan 3 dompet BAW tanpa risiko bentrok session berkat sistem spoofing device & Keytar vault terisolasi.
 - **Scraper 2 Arah (Telegram & X)**: Memantau 5 channel airdrop pilihan di Telegram dan kata kunci Agentic di X secara real-time.
 - **Anti-Scam & Anti-Drainer Ketat**: Memblokir otomatis fungsi berbahaya (`approve`, `setApprovalForAll`, `permit`) dan domain phising.

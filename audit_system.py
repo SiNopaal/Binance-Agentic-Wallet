@@ -16,7 +16,7 @@ if BASE_DIR not in sys.path:
 
 from config import (
     API_ID, API_HASH, SESSION_PATH, BSC_RPC_LIST,
-    WALLETS, MAX_GAS_FEE_LIMIT_BNB
+    WALLETS, MAX_GAS_FEE_LIMIT_BNB, MAX_TWEET_AGE_MINUTES
 )
 from security_guard import SecurityGuard
 from agentic_detector import AgenticDetector, w3
@@ -64,17 +64,20 @@ async def full_audit():
         print(f"   ❌ Error Wallets: {e}")
         audit_results["wallets_status"] = False
 
-    # 3. AUDIT ENGINE DETEKSI AGENTIC & DOMAIN .AI
-    print("\n[3/7] Mengaudit Mesin Deteksi & Filter (.ai & Agentic)...")
+    # 3. AUDIT ENGINE DETEKSI AGENTIC, .AI & SOLD-OUT FILTER
+    print("\n[3/7] Mengaudit Mesin Deteksi & Filter (.ai, Agentic & Sold-Out)...")
     try:
         detector = AgenticDetector()
         rep_pos = await detector.analyze("Mint cepat gasss fee murah: 0x60b9262456de011f7d15a54cdd8c48baaa8b022f")
         rep_neg = await detector.analyze("pump.fun presale solana meme degen")
+        rep_soldout = await detector.analyze("Agentic airdrop free mint but sold out all minted")
         pos_pass = rep_pos["is_agentic"] and rep_pos["confidence_score"] >= 80
         neg_pass = not rep_neg["is_agentic"] and rep_neg["confidence_score"] == 0
-        print(f"   • Deteksi Target Agentic Asli : {'🟢 100% AKURAT (LOLOS)' if pos_pass else '🔴 GAGAL'}")
-        print(f"   • Filter Buang Spam Meme Coin : {'🟢 100% AKURAT (DIBUANG)' if neg_pass else '🔴 GAGAL'}")
-        audit_results["agentic_detector"] = pos_pass and neg_pass
+        soldout_pass = not rep_soldout["is_agentic"]
+        print(f"   • Deteksi Target Agentic Asli   : {'🟢 100% AKURAT (LOLOS)' if pos_pass else '🔴 GAGAL'}")
+        print(f"   • Filter Buang Spam Meme Coin   : {'🟢 100% AKURAT (DIBUANG)' if neg_pass else '🔴 GAGAL'}")
+        print(f"   • Filter Buang Tweet 'Sold Out' : {'🟢 100% AKURAT (DITOLAK)' if soldout_pass else '🔴 GAGAL'}")
+        audit_results["agentic_detector"] = pos_pass and neg_pass and soldout_pass
     except Exception as e:
         print(f"   ❌ Error Detector: {e}")
         audit_results["agentic_detector"] = False
@@ -108,20 +111,22 @@ async def full_audit():
         print(f"   ❌ Error Free Mint Enforcer: {e}")
         audit_results["free_mint_enforcer"] = False
 
-    # 6. AUDIT AKUN SCRAPER (TELEGRAM & X)
-    print("\n[6/7] Mengaudit Kredensial Listener (Telegram & X)...")
+    # 6. AUDIT AKUN SCRAPER & FRESHNESS FILTER
+    print("\n[6/7] Mengaudit Kredensial Scraper & Freshness Guard...")
     try:
         hunter = XAgenticHunter(auto_mint=False)
         x_acc = hunter.load_twitter_account()
         has_x_tokens = bool(x_acc.get("auth_token") and x_acc.get("ct0"))
-        print(f"   • Twitter / X Session: {'🟢 VALID & AKTIF' if has_x_tokens else '🔴 KREDENSIAL RUSAK'}")
+        print(f"   • Twitter / X Session : {'🟢 VALID & AKTIF' if has_x_tokens else '🔴 KREDENSIAL RUSAK'}")
 
         tele_sess_ok = os.path.exists(SESSION_PATH) and os.path.getsize(SESSION_PATH) > 1000
-        print(f"   • Telegram Session    : {'🟢 VALID & AKTIF' if tele_sess_ok else '🔴 FILE TIDAK ADA'}")
+        print(f"   • Telegram Session     : {'🟢 VALID & AKTIF' if tele_sess_ok else '🔴 FILE TIDAK ADA'}")
+
+        print(f"   • Freshness Time-Limit : 🟢 {MAX_TWEET_AGE_MINUTES} Menit (Tweet > {MAX_TWEET_AGE_MINUTES}m di-skip)")
 
         targets = load_target_channels()
         targets_ok = len(targets) >= 1
-        print(f"   • Whitelist Channels  : {'🟢 CHANNEL TERKUNCI' if targets_ok else '⚠️ Tidak ada channel'}")
+        print(f"   • Whitelist Channels   : {'🟢 CHANNEL TERKUNCI' if targets_ok else '⚠️ Tidak ada channel'}")
         for ch in targets:
             print(f"      - @{ch}")
 

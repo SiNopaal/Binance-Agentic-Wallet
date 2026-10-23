@@ -2,12 +2,13 @@ import os
 import sys
 import json
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from telethon import TelegramClient, events
 from config import (
     API_ID,
     API_HASH,
-    SESSION_PATH
+    SESSION_PATH,
+    MAX_TWEET_AGE_MINUTES
 )
 from agentic_detector import AgenticDetector
 from executor import MultiWalletExecutor
@@ -90,6 +91,16 @@ class TelegramAgenticSniper:
         if not text or len(text.strip()) < 5:
             return
 
+        # Check message freshness (Batas usia 30 menit)
+        msg_date = getattr(event.message, "date", None)
+        age_minutes = 0.0
+        if msg_date:
+            if msg_date.tzinfo is None:
+                msg_date = msg_date.replace(tzinfo=timezone.utc)
+            age_minutes = max(0.0, (datetime.now(timezone.utc) - msg_date).total_seconds() / 60.0)
+
+        is_fresh = age_minutes <= MAX_TWEET_AGE_MINUTES
+
         # Run deep analysis
         report = await self.detector.analyze(text)
 
@@ -100,10 +111,13 @@ class TelegramAgenticSniper:
         # IF VERIFIED AGENTIC AIRDROP
         if report["is_agentic"]:
             print("\n" + "=" * 70)
-            print("🚨 [AGENTIC AIRDROP DETECTED DARI GRUP TARGET TELEGRAM!]")
+            if is_fresh:
+                print("🚨 [VERIFIED FRESH AGENTIC AIRDROP DARI GRUP TARGET TELEGRAM!]")
+            else:
+                print(f"⏳ [AGENTIC AIRDROP DETECTED - PESAN KEDALUWARSA ({age_minutes:.1f}m > {MAX_TWEET_AGE_MINUTES}m)]")
             print("=" * 70)
             print(f"📡 Channel   : {chat_title} (@{chat_username}) [WHITELISTED]")
-            print(f"⏰ Timestamp : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"⏰ Timestamp : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} (Usia: {age_minutes:.1f} menit)")
             print(f"🎯 Action    : {report['action_type']}")
             print(f"⭐ Confidence: {report['confidence_score']}%")
             if report['contracts']:
@@ -120,17 +134,22 @@ class TelegramAgenticSniper:
                 "source": "TELEGRAM",
                 "channel": chat_title,
                 "username": chat_username,
+                "message_age_minutes": round(age_minutes, 2),
+                "is_fresh": is_fresh,
                 "timestamp": datetime.now().isoformat(),
                 "report": report,
                 "raw_message": text
             }
             save_detected_airdrop(save_entry)
 
-            # Auto Mint / Execute if enabled
+            # Auto Mint / Execute if enabled and fresh
             if self.auto_mint and report["contracts"]:
-                target_contract = report["contracts"][0]
-                print(f"⚡ [AUTO-MINT ACTIVE] Memicu claim untuk 3 wallet ke {target_contract}...")
-                self.executor.execute_contract_call(target_contract)
+                if not is_fresh:
+                    print(f"⛔ [AUTO-MINT DITOLAK: PESAN LAMA] Pesan diposting {age_minutes:.1f} menit lalu (> {MAX_TWEET_AGE_MINUTES} menit). Potensi kuat kuota sudah ludes/sold out!")
+                else:
+                    target_contract = report["contracts"][0]
+                    print(f"⚡ [AUTO-MINT ACTIVE] Pesan Telegram fresh ({age_minutes:.1f}m)! Memicu claim untuk 3 wallet ke {target_contract}...")
+                    self.executor.execute_contract_call(target_contract)
 
     async def start(self):
         self.reload_channels()
@@ -150,6 +169,7 @@ class TelegramAgenticSniper:
         print("==================================================================")
         print(f"👤 User Session : {user_display}")
         print(f"🎯 Target File  : {CHANNELS_FILE}")
+        print(f"⏱️ Freshness    : MAKSIMAL {MAX_TWEET_AGE_MINUTES} MENIT")
         print(f"📋 Total Target : {len(self.target_channels)} Grup/Channel Whitelisted")
         for t in list(self.target_channels)[:10]:
             print(f"   • @{t}")

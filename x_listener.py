@@ -2,14 +2,15 @@ import os
 import sys
 import json
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from twikit import Client
 from config import (
     AGENTIC_KEYWORDS,
     TWITTER_ACCOUNTS_FILE,
     TWITTER_ACCOUNT_NAME,
     TWITTER_AUTH_TOKEN,
-    TWITTER_CT0
+    TWITTER_CT0,
+    MAX_TWEET_AGE_MINUTES
 )
 from agentic_detector import AgenticDetector, w3
 from security_guard import SecurityGuard
@@ -37,6 +38,7 @@ class XAgenticHunter:
         self.auto_mint = auto_mint
         self.client = Client('en-US')
         self.seen_tweet_ids = set()
+        self.bootstrapped = False
 
     def load_twitter_account(self):
         """
@@ -63,7 +65,6 @@ class XAgenticHunter:
         accounts = data.get("accounts", {})
         acc = accounts.get(TWITTER_ACCOUNT_NAME)
         if not acc and accounts:
-            # Fallback ke akun pertama jika nama tidak cocok persis
             first_key = next(iter(accounts))
             acc = accounts[first_key]
 
@@ -76,9 +77,31 @@ class XAgenticHunter:
         })
         return acc
 
-    # Alias untuk kompatibilitas mundur
     def load_fannet_account(self):
         return self.load_twitter_account()
+
+    async def bootstrap_cold_start(self):
+        """
+        COLD-START WARMUP:
+        Mengindeks tweet lama yang sudah ada di Twitter sebelum bot hidup.
+        Mencegah bot langsung mengeksekusi garapan lama yang kuotanya sudah habis/sold out.
+        """
+        print("🧊 [COLD-START WARMUP] Mengindeks tweet awal yang sudah ada di X...")
+        total_indexed = 0
+        for query in SEARCH_QUERIES:
+            try:
+                tweets = await self.client.search_tweet(query, 'Latest', count=10)
+                for tw in tweets:
+                    if tw.id not in self.seen_tweet_ids:
+                        self.seen_tweet_ids.add(tw.id)
+                        total_indexed += 1
+                await asyncio.sleep(2)
+            except Exception as e:
+                print(f"   ⚠️ Warmup query notice ({query[:25]}...): {e}")
+
+        self.bootstrapped = True
+        print(f"✅ [WARMUP SELESAI] {total_indexed} tweet lama berhasil di-indeks.")
+        print(f"🛡️ Freshness Filter Aktif: HANYA tweet berumur <= {MAX_TWEET_AGE_MINUTES} menit yang diproses!\n")
 
     async def poll_once(self):
         for query in SEARCH_QUERIES:
@@ -92,6 +115,18 @@ class XAgenticHunter:
                     text = tw.text or ""
                     user = getattr(tw, "user", None)
                     author = getattr(user, "screen_name", "unknown") if user else "unknown"
+
+                    # 0. FRESHNESS GATE (Filter Usia Tweet Maksimal 30 Menit)
+                    tw_dt = getattr(tw, "created_at_datetime", None)
+                    if tw_dt:
+                        if tw_dt.tzinfo is None:
+                            tw_dt = tw_dt.replace(tzinfo=timezone.utc)
+                        age_seconds = (datetime.now(timezone.utc) - tw_dt).total_seconds()
+                        age_minutes = max(0.0, age_seconds / 60.0)
+                    else:
+                        age_minutes = 0.0
+
+                    is_fresh = age_minutes <= MAX_TWEET_AGE_MINUTES
 
                     # 1. Analisa Relevansi Agentic
                     report = await self.detector.analyze(text)
@@ -116,12 +151,15 @@ class XAgenticHunter:
                         print("\n" + "=" * 70)
                         if is_dangerous:
                             print("🚨❌ [PERINGATAN: TERDETEKSI INDIKASI SCAM / DRAINER DI X!]")
+                        elif not is_fresh:
+                            print(f"⏳⚠️ [AGENTIC AIRDROP DITEMUKAN - TWEET KEDALUWARSA ({age_minutes:.1f}m > {MAX_TWEET_AGE_MINUTES}m)]")
                         elif is_untrusted_author:
                             print("⚠️🔍 [AGENTIC AIRDROP DETECTED - PERLU REVIEW (AKUN X BELUM TERPERCAYA)]")
                         else:
-                            print("🟢✨ [VERIFIED AGENTIC AIRDROP DETECTED! (AMAN DARI SCAM)]")
+                            print("🟢✨ [VERIFIED FRESH AGENTIC AIRDROP DETECTED! (AMAN DARI SCAM)]")
                         print("=" * 70)
                         print(f"👤 Author      : @{author} ({author_audit['followers']} followers | Trust: {author_audit['trust_level']})")
+                        print(f"⏰ Usia Tweet  : {age_minutes:.1f} menit lalu (Freshness Limit: {MAX_TWEET_AGE_MINUTES} menit)")
                         print(f"🔗 Tweet URL   : https://x.com/{author}/status/{tw.id}")
                         print(f"🎯 Action      : {report['action_type']}")
                         print(f"⭐ Skor Relevan: {report['confidence_score']}%")
@@ -151,6 +189,8 @@ class XAgenticHunter:
                             "source": "X_TWITTER",
                             "author": author,
                             "tweet_url": f"https://x.com/{author}/status/{tw.id}",
+                            "tweet_age_minutes": round(age_minutes, 2),
+                            "is_fresh": is_fresh,
                             "timestamp": datetime.now().isoformat(),
                             "author_security": author_audit,
                             "contracts_security": contract_audits,
@@ -159,12 +199,15 @@ class XAgenticHunter:
                         }
                         save_detected_airdrop(save_entry)
 
-                        # AUTO-MINT HANYA JIKA LOLOS AUDIT KEAMANAN!
+                        # AUTO-MINT HANYA JIKA FRESH (<= 30 MENIT) & LOLOS AUDIT KEAMANAN!
                         if self.auto_mint and report["contracts"]:
                             target_contract = report["contracts"][0]
                             audit = contract_audits.get(target_contract, {})
-                            if audit.get("is_safe_for_automint") and not is_dangerous and not is_untrusted_author:
-                                print(f"⚡ [SECURITY PASSED] Memicu claim aman 3 wallet ke {target_contract}...")
+
+                            if not is_fresh:
+                                print(f"⛔ [AUTO-MINT DITOLAK: TWEET KEDALUWARSA] Usia tweet {age_minutes:.1f} menit (melebihi filter {MAX_TWEET_AGE_MINUTES} menit). Potensi kuat sudah ludes/sold out!")
+                            elif audit.get("is_safe_for_automint") and not is_dangerous and not is_untrusted_author:
+                                print(f"⚡ [SECURITY & FRESHNESS PASSED] Tweet fresh ({age_minutes:.1f}m)! Memicu claim aman 3 wallet ke {target_contract}...")
                                 self.executor.execute_contract_call(target_contract)
                             else:
                                 print(f"⛔ [AUTO-MINT DITAHAN] Kontrak atau akun X belum lolos audit keamanan untuk auto-eksekusi.")
@@ -186,11 +229,16 @@ class XAgenticHunter:
         print("==================================================================")
         print(f"👤 Akun X      : @{screen_name}")
         print(f"🛡️ Security    : ANTI-SCAM, DRAINER GUARD & AUTHOR TRUST ACTIVE")
-        print(f"⚙️ Auto-Mint   : {'AKTIF (Hanya jika lolos audit keamanan)' if self.auto_mint else 'NONAKTIF'}")
+        print(f"⏱️ Freshness   : MAKSIMAL {MAX_TWEET_AGE_MINUTES} MENIT (Tweet lama ditolak)")
+        print(f"⚙️ Auto-Mint   : {'AKTIF (Hanya jika fresh & lolos audit)' if self.auto_mint else 'NONAKTIF'}")
         print(f"🎯 Target      : EKOSISTEM AGENTIC WALLET & .AI REGISTRY")
         print(f"⏱️ Interval    : Setiap {interval_seconds} detik")
         print("==================================================================")
-        print("🎧 Memantau tweet dengan filter keamanan ketat... (Ctrl+C untuk berhenti)\n")
+
+        # Warmup indexing cold-start tweets
+        await self.bootstrap_cold_start()
+
+        print("🎧 Memantau tweet baru real-time... (Ctrl+C untuk berhenti)\n")
 
         while True:
             await self.poll_once()

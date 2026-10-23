@@ -24,6 +24,10 @@ TWITTER_ACCOUNT_NAME = os.getenv("TWITTER_ACCOUNT_NAME", "fannettt")
 TWITTER_AUTH_TOKEN = os.getenv("TWITTER_AUTH_TOKEN", "")
 TWITTER_CT0 = os.getenv("TWITTER_CT0", "")
 
+# Tweet & Post Freshness Limit in Minutes (Default: 30 minutes)
+# Tweet lebih tua dari batas ini otomatis ditolak auto-mint demi menghindari kuota sold-out!
+MAX_TWEET_AGE_MINUTES = int(os.getenv("MAX_TWEET_AGE_MINUTES", "30"))
+
 # BSC RPC Endpoints (with fallback)
 BSC_RPC_LIST = [
     os.getenv("BSC_RPC_ENDPOINT", "https://bsc-dataseed.binance.org"),
@@ -55,9 +59,11 @@ AGENTIC_KEYWORDS = {
     ]
 }
 
-# Negative Keywords (AUTO-REJECT: Paid mints, presale, casino, meme coin spam)
-# STRICT ZERO-COST RULE: Saldo dompet HANYA boleh terpakai untuk network gas fee!
+# Negative Keywords (AUTO-REJECT: Paid mints, presale, sold-out, casino, meme coin spam)
+# STRICT ZERO-COST & FRESHNESS RULE:
 NEGATIVE_KEYWORDS = [
+    # Sold out & Ended signals
+    "sold out", "soldout", "all minted", "mint ended", "claim ended", "mint closed", "whitelist closed",
     # Paid Mint & Sales Traps
     "paid mint", "mint price", "mint fee:", "price:", "cost:", "buy ticket",
     "0.01 bnb", "0.02 bnb", "0.03 bnb", "0.05 bnb", "0.1 bnb", "0.2 bnb", "0.5 bnb",
