@@ -1,0 +1,44 @@
+{
+  "accounts": [
+    {
+      "id": 1,
+      "name": "Node-Alpha",
+      "profile_dir": "~/.baw/profiles/acc1",
+      "service": "baw_acc1",
+      "device_name": "Agent-Node-Acc1",
+      "instance_id": "28:92:00:6c:9e:0e"
+    },
+    {
+      "id": 2,
+      "name": "Node-Beta",
+      "profile_dir": "~/.baw/profiles/acc2",
+      "service": "baw_acc2",
+      "device_name": "Agent-Node-Acc2",
+      "instance_id": "28:92:00:6c:9e:0e"
+    },
+    {
+      "id": 3,
+      "name": "Node-Gamma",
+      "profile_dir": "~/.baw/profiles/acc3",
+      "service": "baw_acc3",
+      "device_name": "Agent-Node-Acc3",
+      "instance_id": "28:92:00:6c:9e:0e"
+    },
+    {
+      "id": 4,
+      "name": "Node-Delta",
+      "profile_dir": "~/.baw/profiles/acc4",
+      "service": "baw_acc4",
+      "device_name": "Agent-Node-Acc4",
+      "instance_id": "28:92:00:6c:9e:0e"
+    },
+    {
+      "id": 5,
+      "name": "Node-Epsilon",
+      "profile_dir": "~/.baw/profiles/acc5",
+      "service": "baw_acc5",
+      "device_name": "Agent-Node-Acc5",
+      "instance_id": "28:92:00:6c:9e:0e"
+    }
+  ]
+}

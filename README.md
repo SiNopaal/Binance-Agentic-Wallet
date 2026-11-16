@@ -1,185 +1,90 @@
-# 🤖 Binance Agentic Wallet & Airdrop Sniper Suite
+# 🤖 Binance Agentic Wallet (BAW) Multi-Account Manager
 
-[![BNB Chain](https://img.shields.io/badge/Network-BNB%20Chain%20(BSC)-F0B90B?style=for-the-badge&logo=binance&logoColor=black)](https://bscscan.com)
-[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
-[![Security](https://img.shields.io/badge/Security-4--Tier%20Guard%20%2B%20Auto--Revoke-2ea44f?style=for-the-badge&logo=shield)](https://github.com/SiNopaal/Binance-Agentic-Wallet)
-[![Multi--Wallet](https://img.shields.io/badge/Multi--Profile-3%20Concurrent%20Wallets-9cf?style=for-the-badge&logo=ethereum)](https://github.com/SiNopaal/Binance-Agentic-Wallet)
-[![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js](https://img.shields.io/badge/Node.js-18%2B-green.svg)](https://nodejs.org/)
+[![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://python.org/)
+[![Web3](https://img.shields.io/badge/Web3-Binance%20Agentic%20Wallet-F0B90B.svg)](https://web3.binance.com/)
 
-An enterprise-grade, autonomous **Binance Agentic Wallet (BAW)** management engine and real-time **Free-Mint Airdrop Sniper** built specifically for the BNB Chain Agentic Ecosystem, `.ai` Agent ID Registries, and AI Agent token drops.
-
----
-
-## 📑 Table of Contents
-- [Architecture Overview](#-architecture-overview)
-- [Key Features](#-key-features)
-- [Security Model & Anti-Drainer Shield](#-security-model--anti-drainer-shield)
-- [Multi-Profile BAW Infrastructure](#-multi-profile-baw-infrastructure)
-- [Directory Structure](#-directory-structure)
-- [Getting Started](#-getting-started)
-- [Configuration (.env)](#-configuration-env)
-- [Usage & Commands](#-usage--commands)
-- [Automated 7-Point Audit](#-automated-7-point-audit)
-- [Panduan Bahasa Indonesia](#-panduan-ringkas-bahasa-indonesia)
-- [Disclaimer & License](#-disclaimer--license)
+An advanced, production-grade multi-profile orchestration framework for the official **Binance Agentic Wallet (`@binance/agentic-wallet`) CLI**.
 
 ---
 
-## 🏛️ Architecture Overview
+## 🌟 Why This Project?
+
+By default, the Binance Agentic Wallet CLI is designed strictly for a single local user account. Storing multiple wallets natively leads to credential overwrites, session conflicts, and database corruption.
+
+**This framework solves these limitations by providing:**
+1. **Complete Profile Isolation**: Each wallet profile runs in its own sandbox with dedicated data directories and independent OS credential storage.
+2. **Anti-Reset & VPN Protection (`preload.cjs`)**: Fixes a critical flaw where switching network adapters (e.g. toggling VPN, WARP 1.1.1.1, or mobile hotspot) changes the system's primary MAC address, which triggers BAW's internal encryption check to wipe all saved session tokens.
+3. **ISP DNS Bypass**: Built-in DNS resolver hooks prevent regional ISP DNS blocks on Binance CloudFront endpoints.
+4. **Interactive QR Sign-in Assistant**: Fast pairing code display, QR image generation, and automatic blocking verification with instant credential archiving.
+5. **24/7 Keep-Alive & Auto-Recovery**: Heartbeat monitoring daemon that detects connection drops and automatically restores sessions from encrypted local backups.
+6. **Batch Automation Suite**: Execute commands, audit native BNB and token balances, and broadcast smart contract calls across all accounts in parallel.
+
+---
+
+## 🏗️ Architecture & How It Works
 
 ```mermaid
 flowchart TD
-    subgraph DataSources["📡 Real-Time Listeners"]
-        TG["Telegram Listener\n(Telethon Whitelist)"]
-        X["Twitter / X Scraper\n(Twikit Keyword Stream)"]
-    end
-
-    subgraph FreshnessGate["⏱️ Freshness & Anti-Sold-Out Gate"]
-        F1["30-Minute Age Filter\n(created_at <= 30 mins)"]
-        F2["Cold-Start Warmup\n(Index Existing Tweets on Boot)"]
-        F3["Sold-Out / Ended Signal Filter"]
-    end
-
-    subgraph DetectionEngine["🧠 AI & Agentic Classification"]
-        D1["Keyword & Weight Engine\n(High/Med/Action Scores)"]
-        D2["BSC RPC Bytecode Inspector\n(Selector Verification)"]
-        D3["dApp Web Metadata Scraper\n(Title & Meta Tags)"]
-    end
-
-    subgraph SecurityGuard["🛡️ 4-Tier Security Guard"]
-        S1["Author Trust Score\n(Age, Followers, Blue Tick)"]
-        S2["Drainer Blocker\n(approve, permit, setApprovalForAll)"]
-        S3["Phishing Domain Filter\n(Blacklist & Official Whitelist)"]
-        S4["Zero-Value Enforcer\n(value == 0 wei ONLY)"]
-    end
-
-    subgraph Execution["⚡ Multi-Wallet Execution"]
-        BAW1["Akun 1 (baw1)"]
-        BAW2["Akun 2 (baw2)"]
-        BAW3["Akun 3 (baw3)"]
-    end
-
-    subgraph PostExecution["🔒 Defense & Liquidation"]
-        REV["Post-Mint Auto-Revoke\n(Reset All Allowances to 0)"]
-        SELL["Auto-Seller & Portfolio Cleaner\n(Instant DEX Market Swap to BNB)"]
-    end
-
-    TG --> FreshnessGate
-    X --> FreshnessGate
-    FreshnessGate -->|Fresh Post| D1
-    D1 --> D2 --> D3
-    D3 --> SecurityGuard
-    SecurityGuard -->|Verified & Safe| Execution
-    Execution --> REV
-    REV --> SELL
+    User["User / Bot Script"] --> Manager["core/multi_manager.py"]
+    Manager --> Wrapper["baw1.cmd / baw2.cmd ... bawN.cmd"]
+    Wrapper --> Preload["core/preload.cjs<br/>(DNS Bypass + Fixed Instance ID)"]
+    Preload --> CLI["@binance/agentic-wallet CLI"]
+    CLI --> Env1["BINANCE_BAW_DIR: ~/.baw/profiles/accN"]
+    CLI --> Env2["BINANCE_KEYTAR_SERVICE: baw_accN"]
+    CLI --> Env3["BINANCE_DEVICE_NAME: Agent-Node-AccN"]
+    CLI --> Keytar["OS Credential Manager (Keytar)"]
+    CLI --> Binance["Binance Web3 CloudFront Endpoints"]
 ```
 
----
-
-## ✨ Key Features
-
-1. **Dual-Channel Alpha Scraper**:
-   - **Telegram Streamer**: Asynchronously listens only to whitelisted alpha channels (e.g., Airdrop Umbrella, Bit_ID, NexGen, CloudJP, FamilyIDN). All noise and spam groups are discarded.
-   - **Twitter / X Streamer**: Live keyword queries tracking Binance Agentic Wallet, `.ai` domains, ERC-6551 tokens, and Agent ID contracts.
-
-2. **Freshness Gate & Anti-Sold-Out Protection**:
-   - **30-Minute Time Window**: Tweets older than 30 minutes are automatically blocked from auto-minting, preventing failed transactions on sold-out drops.
-   - **Cold-Start Bootstrapping**: On startup, existing historical tweets are indexed as baseline so only brand-new, live tweets trigger actions.
-   - **Sold-Out Regex Filter**: Instant rejection of posts announcing "sold out", "all minted", "claim ended", or "whitelist closed".
-
-3. **3-Layer Agentic & `.ai` Filter**:
-   - Regex-based scoring across high/medium priority keywords.
-   - Live BSC RPC inspection verifying contract bytecode and known mint/claim function selectors (`0x8580974c`, `0x1249c58b`, `0xa0712d68`, etc.).
-   - Web scraper analyzing external dApp landing pages for AI-agent signals.
-
-4. **Multi-Profile Concurrent Engine**:
-   - Run up to 3 (or more) Binance Agentic Wallets concurrently on the same machine.
-   - Completely circumvents Windows Keytar credential overwriting and session collisions.
-
-5. **Zero-Cost Free Mint Enforcer**:
-   - Transactions requiring native BNB payment (`value > 0`) are instantly rejected.
-   - Wallet balances are **strictly reserved for gas fees only**.
-
-6. **Post-Mint Auto-Revoke**:
-   - Immediately following every mint or claim transaction, the executor queries on-chain token allowances and executes `approvals revoke` across all spender addresses.
-
-7. **Autonomous DEX Liquidation (Auto-Seller)**:
-   - Scans wallet balances across all accounts.
-   - Automatically queries PancakeSwap DEX quotes and liquidates freshly minted tokens into native BNB while protecting valuable passes and relics.
+Each profile is isolated via three environment variables:
+* `BINANCE_BAW_DIR`: Unique directory for `session.json` and local logs.
+* `BINANCE_KEYTAR_SERVICE`: Unique service key in Windows Credential Manager / macOS Keychain / Linux Secret Service.
+* `BINANCE_DEVICE_NAME`: Unique agent node identifier recognized by Binance.
+* `BINANCE_INSTANCE_ID`: Pinned hardware identifier ensuring sessions survive network adapter re-ordering.
 
 ---
 
-## 🛡️ Security Model & Anti-Drainer Shield
+## 📁 Repository Structure
 
-The suite operates under a **Zero-Trust Security Principle** to protect wallet funds against malicious airdrops, fake mints, and wallet drainers:
-
-| Layer | Mechanism | Protection Scope |
-| :--- | :--- | :--- |
-| **Tier 1: Freshness & Supply Gate** | Age limit & Sold-Out detector | Rejects stale posts (>30 mins) and closed mints to prevent reverted tx fees. |
-| **Tier 2: Local Code Enforcer** | Pre-flight validation | Any transaction with `value > 0` is aborted immediately. |
-| **Tier 3: Function Selector Guard** | Bytecode inspection | Blocks trap selectors: `approve()` (`0x095ea7b3`), `setApprovalForAll()` (`0xa22cb465`), `permit()` (`0xd505accf`). |
-| **Tier 4: Node Simulation** | Live RPC simulation | Tests contract call with `--value 0`. If contract requires payment or reverts, simulation fails and no transaction is signed. |
-| **Tier 5: Post-Mint Auto-Revoke** | Automated allowance sweep | Clears any residual or unauthorized token allowances after execution. |
-
----
-
-## 💼 Multi-Profile BAW Infrastructure
-
-By default, the Binance Agentic Wallet CLI stores credentials in a single global service vault and shares the machine hostname. This project solves this with:
-- **`BINANCE_KEYTAR_SERVICE`**: Assigns independent vault names (`baw_acc1`, `baw_acc2`, `baw_acc3`).
-- **`BINANCE_BAW_DIR`**: Isolates database directories per account (`profiles/acc1`, `profiles/acc2`, `profiles/acc3`).
-- **`preload.cjs`**: Preload hook intercepting `os.hostname()` to present distinct virtual node identities to Binance backend.
-
-CLI wrappers are provided:
-- `baw1`: Controls Account 1
-- `baw2`: Controls Account 2
-- `baw3`: Controls Account 3
-
----
-
-## 📁 Directory Structure
-
-```
+```text
 Binance-Agentic-Wallet/
-├── .gitignore                      # Git ignore rules (secrets, caches, logs)
-├── .env.example                    # Template environment file
-├── requirements.txt                # Python package dependencies
-├── target_channels.txt             # Whitelist of target Telegram channels
-├── config.py                       # Global configurations, keywords, and endpoints
-├── agentic_detector.py             # 3-Layer Agentic & .ai classification engine
-├── security_guard.py               # 4-Tier Anti-Drainer and Scam detector
-├── executor.py                     # Multi-wallet free-mint runner & auto-revoker
-├── auto_seller.py                  # DEX market liquidation to native BNB
-├── telegram_listener.py            # Telethon async Telegram monitor (with freshness gate)
-├── x_listener.py                   # Twikit Twitter/X scraper (with 30m age filter)
-├── audit_system.py                 # Automated 7-point pre-flight audit suite
-├── main.py                         # Unified daemon entrypoint
-│
-├── run_agentic_sniper.bat          # 1-Click Launch: Dual Scraper (Monitor Only)
-├── run_auto_mint.bat               # 1-Click Launch: Auto-Mint (3 Wallets)
-├── clean_and_sell.bat              # 1-Click Launch: Portfolio Liquidation to BNB
-├── revoke_approvals.bat            # 1-Click Launch: Instant Manual Revoke Sweep
-│
-└── baw-tools/                      # Multi-profile Binance Agentic Wallet tools
-    ├── README.md                   # BAW Multi-Profile documentation
-    ├── baw-multi.mjs               # Profile status and orchestrator CLI
-    ├── preload.cjs                 # Node hostname spoofing hook
-    └── setup-profile-commands.bat  # Automated wrapper installer
+├── core/
+│   ├── preload.cjs                # DNS hook & fixed hardware Instance ID
+│   ├── multi_manager.py           # Master CLI orchestrator for all accounts
+│   ├── session_backup_restore.py  # Session token archiver & 1-click restore
+│   └── keepalive_daemon.py        # 24/7 heartbeat monitor & auto-recovery
+├── tools/
+│   ├── qr_login_helper.py         # Terminal QR generator & auto-verifier
+│   ├── setup_profiles.bat         # Windows shortcut generator (baw1, baw2, ...)
+│   └── setup_profiles.sh          # Linux/macOS shortcut generator
+├── scripts/
+│   ├── batch_balance_checker.py   # Multi-wallet BNB & token balance auditor
+│   └── batch_contract_call.py     # Batch smart contract call executor
+├── config/
+│   └── accounts.example.json      # Account configuration template
+├── .env.example                   # Environment variable template
+├── .gitignore                     # Comprehensive secret & token exclusion
+├── package.json                   # NPM dependencies
+├── requirements.txt               # Python dependencies
+└── README.md
 ```
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Quick Start Guide
 
 ### 1. Prerequisites
-- **Python 3.10+**
-- **Node.js 18+** & npm
-- **Binance Agentic Wallet CLI**:
+Ensure you have the following installed:
+* **Node.js** (v18 or higher)
+* **Python** (v3.9 or higher)
+* **Binance Agentic Wallet CLI**:
   ```bash
   npm install -g @binance/agentic-wallet
   ```
 
-### 2. Clone & Install
+### 2. Clone & Install Dependencies
 ```bash
 git clone https://github.com/SiNopaal/Binance-Agentic-Wallet.git
 cd Binance-Agentic-Wallet
@@ -188,128 +93,76 @@ cd Binance-Agentic-Wallet
 pip install -r requirements.txt
 ```
 
-### 3. Setup Multi-Profile BAW Wrappers
-Run the setup script inside `baw-tools`:
-```cmd
-baw-tools\setup-profile-commands.bat
-```
-Then log in to your wallets:
+### 3. Setup Profiles
+1. Copy the example configuration:
+   ```bash
+   cp config/accounts.example.json config/accounts.json
+   ```
+2. Generate your CLI shortcuts:
+   * **Windows**: Run `tools\setup_profiles.bat` (Generates `baw1.cmd`, `baw2.cmd`, etc. in your user folder).
+   * **Linux/macOS**: Run `bash tools/setup_profiles.sh`.
+
+### 4. Authenticate Accounts via QR Code
+Run the login helper for each account you want to connect:
 ```bash
-baw1 login
-baw2 login
-baw3 login
+python tools/qr_login_helper.py --acc 1
+```
+* The terminal will output the direct link, pairing code, and generate a QR image in `qr_codes/`.
+* Scan the QR code using your **Binance Wallet App** on mobile.
+* Confirm sign-in. The script will automatically verify and archive a safe local backup upon success.
+* Repeat for `--acc 2`, `--acc 3`, etc.
+
+### 5. Audit & Manage All Accounts
+Check the connection status and on-chain addresses of all configured wallets:
+```bash
+python core/multi_manager.py --status
 ```
 
-### 4. Configure Environment
-Copy `.env.example` to `.env` and fill in your details:
+Run any arbitrary BAW command across all wallets:
 ```bash
-copy .env.example .env
+python core/multi_manager.py --run wallet balance --json
+```
+
+Check native BNB gas balances:
+```bash
+python scripts/batch_balance_checker.py
 ```
 
 ---
 
-## ⚙️ Configuration (.env)
+## 🛡️ 24/7 Keep-Alive & Auto-Recovery
 
-```env
-# Telegram Scraper Credentials (from https://my.telegram.org)
-TELEGRAM_API_ID=2040
-TELEGRAM_API_HASH=b18441a1ff607e10a989891a5462e627
-TELEGRAM_SESSION_PATH=session/user.session
-
-# Twitter / X Credentials (Cookies or accounts.json)
-TWITTER_ACCOUNTS_FILE=accounts.json
-TWITTER_ACCOUNT_NAME=your_username
-TWITTER_AUTH_TOKEN=
-TWITTER_CT0=
-
-# Freshness & Sold-Out Protection
-MAX_TWEET_AGE_MINUTES=30
-
-# Multi-Wallet Setup
-WALLET_1_NAME=Account 1
-WALLET_1_CMD=baw1
-WALLET_1_ADDRESS=0xYourWalletAddress1
-
-WALLET_2_NAME=Account 2
-WALLET_2_CMD=baw2
-WALLET_2_ADDRESS=0xYourWalletAddress2
-
-WALLET_3_NAME=Account 3
-WALLET_3_CMD=baw3
-WALLET_3_ADDRESS=0xYourWalletAddress3
-
-# Safety Thresholds
-AGENTIC_SCORE_THRESHOLD=60
-MAX_GAS_FEE_LIMIT_BNB=0.0004
-MIN_USD_TO_SELL=0.20
+To ensure your agent squad never goes offline, run the keep-alive daemon:
+```bash
+python core/keepalive_daemon.py
 ```
+* **Heartbeat**: Pings each wallet every 20 minutes (configurable via `BAW_KEEPALIVE_INTERVAL`).
+* **Auto-Recovery**: If Windows Keytar drops or an account disconnects, it automatically re-injects the session from the local encrypted backup without requiring manual QR scans.
 
 ---
 
-## 🎮 Usage & Commands
+## 🔒 Security & OPSEC Best Practices
 
-### 1. Run Complete Automated System Audit
-```bash
-python audit_system.py
-```
+> [!CAUTION]
+> **NEVER COMMIT CREDENTIALS TO GIT!**
+> The provided `.gitignore` is strictly configured to ignore:
+> * `profiles/` and `~/.baw/` (Session files)
+> * `backups/` and `*keytar*` (Credential Manager secrets)
+> * `qr_codes/` and `*.log`
+> * `config/accounts.json` and `.env`
 
-### 2. Live Monitoring (Monitor & Alert Only)
+Before pushing any changes to your fork, always verify with:
 ```bash
-python main.py --all
+git status
 ```
-*Or double-click `run_agentic_sniper.bat`.*
-
-### 3. Live Auto-Minting (Autonomous Execution)
-```bash
-python main.py --all --auto-mint
-```
-*Or double-click `run_auto_mint.bat`.*
-
-### 4. Convert Airdropped Tokens to BNB
-```bash
-python auto_seller.py --sell
-```
-*Or double-click `clean_and_sell.bat`.*
-
-### 5. Instant Security Revoke Sweep
-```bash
-python executor.py --revoke-all
-```
-*Or double-click `revoke_approvals.bat`.*
+Ensure no private keys, session tokens, or real wallet files are staged.
 
 ---
 
-## 🔍 Automated 7-Point Audit
-
-The project includes an integrated audit script (`audit_system.py`) that performs 7 live verification checks before entering production:
-
-1. **BSC RPC Connectivity**: Verifies Web3 connection to Chain ID 56.
-2. **BAW Multi-Wallet Status**: Audits gas balances and active CLI wrappers for all 3 accounts.
-3. **Agentic, .ai & Sold-Out Detector Accuracy**: Tests AI-agent detection vs spam & sold-out rejection.
-4. **Anti-Scam & Drainer Blocker**: Verifies immediate blocking of drainer selectors and phishing domains.
-5. **Zero-Cost Free-Mint Gating**: Ensures paid transactions are strictly rejected.
-6. **Listener Credentials & Freshness Guard**: Verifies Telegram/X sessions and the 30-minute freshness limit.
-7. **Post-Mint Auto-Revoke**: Tests on-chain allowance queries and revocation mechanisms.
+## 📜 License
+This project is open-source and released under the [MIT License](LICENSE).
 
 ---
 
-## 🇮🇩 Panduan Ringkas (Bahasa Indonesia)
-
-**Binance Agentic Wallet & Airdrop Sniper** adalah sistem automasi cerdas untuk memburu dan melakukan klaim free-mint airdrop di jaringan BNB Chain, khususnya garapan berbasis AI Agent dan domain `.ai`.
-
-### Fitur Unggulan:
-- **Freshness Guard (Batas 30 Menit)**: Otomatis menolak auto-mint untuk tweet/pesan yang sudah berumur > 30 menit. Mencegah kegagalan transaksi dan buang-buang gas fee akibat garapan yang sudah ludes (*Sold Out*).
-- **Cold-Start Bootstrapping**: Saat bot baru dinyalakan, bot secara otomatis meng-indeks tweet lama sebagai baseline sehingga murni hanya menyikat tweet yang baru lahir secara real-time.
-- **3 Akun Multi-Wallet Serentak**: Menjalankan 3 dompet BAW tanpa risiko bentrok session berkat sistem spoofing device & Keytar vault terisolasi.
-- **Scraper 2 Arah (Telegram & X)**: Memantau 5 channel airdrop pilihan di Telegram dan kata kunci Agentic di X secara real-time.
-- **Anti-Scam & Anti-Drainer Ketat**: Memblokir otomatis fungsi berbahaya (`approve`, `setApprovalForAll`, `permit`) dan domain phising.
-- **Aturan Mutlak 100% Free**: Membatalkan transaksi jika ada biaya mint selain gas fee jaringan (maksimal ~$0.15-$0.20 BNB gas fee).
-- **Auto-Revoke Pasca Minting**: Setiap kali selesai klaim, bot langsung mencabut semua approval aktif menjadi 0 agar saldo dompet tetap aman.
-- **Auto-Seller DEX**: Mengonversi token hasil garapan langsung ke koin native BNB di PancakeSwap.
-
----
-
-## ⚖️ Disclaimer & License
-
-- **Disclaimer**: This software is intended for research, automation, and educational purposes. Use on-chain automation responsibly and ensure you understand transactions before execution. Never share your private keys or `.session` files.
-- **License**: MIT License. See [LICENSE](LICENSE) for details.
+## ⚠️ Disclaimer
+*This project is an independent community automation framework and is not officially affiliated with or endorsed by Binance. Use at your own risk. Always test with small gas amounts before running large automated workflows.*

@@ -1,34 +1,43 @@
-# ====================================================================
-# Git Ignore for Binance Agentic Wallet & Airdrop Sniper
-# ====================================================================
+# ==========================================
+# Binance Agentic Wallet (BAW) Multi-Manager
+# Strictly Ignore Sensitive Files and Tokens
+# ==========================================
 
-# Secrets & Environment
+# 1. BAW Profiles & Auth Credentials
+profiles/
+.baw/
+backups/
+qr_codes/
+*.png
+*.jpg
+
+# 2. Local Session Files & Keys
+session.json
+*keytar*
+*.txt
+*.pem
+*.key
+
+# 3. Local Configurations with Real Addresses
+config/accounts.json
 .env
-*.env
-*.session
-*.session-journal
-Telegram Session/
-accounts.json
+.env.local
+*.csv
+*wallets*.json
 
-# Local scan history & runtime logs
-detected_agentic_airdrops.json
+# 4. Logs & Alerts
 *.log
+baw_keepalive.log
+keepalive_alert.txt
+scratch/
 
-# Python bytecode & cache
+# 5. Python & Node Environment
 __pycache__/
 *.py[cod]
 *$py.class
-.pytest_cache/
-
-# BAW Local Node Profiles & Data
 node_modules/
-profiles/
-backups/
-session.json
-npm-debug.log*
+package-lock.json
 
-# System & IDE
+# 6. OS Artifacts
 .DS_Store
 Thumbs.db
-.vscode/
-.idea/

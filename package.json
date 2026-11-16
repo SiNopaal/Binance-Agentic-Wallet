@@ -1,0 +1,26 @@
+{
+  "name": "binance-agentic-multiwallet",
+  "version": "1.0.0",
+  "description": "Multi-Account Manager & Automated Orchestrator for Binance Agentic Wallet (BAW)",
+  "main": "core/preload.cjs",
+  "scripts": {
+    "status": "python core/multi_manager.py --status",
+    "keepalive": "python core/keepalive_daemon.py",
+    "backup": "python core/session_backup_restore.py",
+    "restore": "python core/session_backup_restore.py restore"
+  },
+  "keywords": [
+    "binance",
+    "agentic-wallet",
+    "web3",
+    "multi-account",
+    "automation",
+    "defi",
+    "agent-id"
+  ],
+  "author": "Squad Web3 Automation",
+  "license": "MIT",
+  "dependencies": {
+    "@binance/agentic-wallet": "^1.13.0"
+  }
+}
