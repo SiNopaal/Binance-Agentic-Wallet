@@ -171,24 +171,6 @@ Follow these operational rules strictly:
 
 ---
 
-## 🔒 Security & OPSEC Best Practices
-
-> [!CAUTION]
-> **NEVER COMMIT CREDENTIALS TO GIT!**
-> The provided `.gitignore` is strictly configured to ignore:
-> * `profiles/` and `~/.baw/` (Session files)
-> * `backups/` and `*keytar*` (Credential Manager secrets)
-> * `qr_codes/` and `*.log`
-> * `config/accounts.json` and `.env`
-
-Before pushing any changes to your fork, always verify with:
-```bash
-git status
-```
-Ensure no private keys, session tokens, or real wallet files are staged.
-
----
-
 ## 📜 License
 This project is open-source and released under the [MIT License](LICENSE).
 
