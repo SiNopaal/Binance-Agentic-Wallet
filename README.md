@@ -66,6 +66,7 @@ Binance-Agentic-Wallet/
 │   └── accounts.example.json      # Account configuration template
 ├── .env.example                   # Environment variable template
 ├── .gitignore                     # Comprehensive secret & token exclusion
+├── AGENTS.md                      # Complete machine-readable guide for AI agents
 ├── package.json                   # NPM dependencies
 ├── requirements.txt               # Python dependencies
 └── README.md
@@ -138,6 +139,35 @@ python core/keepalive_daemon.py
 ```
 * **Heartbeat**: Pings each wallet every 20 minutes (configurable via `BAW_KEEPALIVE_INTERVAL`).
 * **Auto-Recovery**: If Windows Keytar drops or an account disconnects, it automatically re-injects the session from the local encrypted backup without requiring manual QR scans.
+
+---
+
+## 🤖 AI Agent & LLM Orchestration Guide
+
+This repository is **Agent-Ready** and designed for seamless integration with AI Assistants and autonomous LLM agents (e.g. Antigravity, Claude Code, Cursor, AutoGPT, Cline, or custom AI workers).
+
+A comprehensive, deterministic agent execution protocol is available in [AGENTS.md](AGENTS.md).
+
+### 📋 System Prompt for AI Agents
+To command an external AI Assistant to manage this multi-account setup safely, copy and paste this system prompt into its configuration:
+
+```markdown
+<binance_agentic_wallet_protocol>
+You are an autonomous commander of a multi-wallet squad using the Binance Agentic Wallet (BAW) Multi-Manager framework.
+Follow these operational rules strictly:
+1. NEVER run un-sandboxed `baw`. Always route commands through `python core/multi_manager.py` or individual account wrappers (`baw1`, `baw2`, etc.).
+2. Before any on-chain transaction, verify connectivity via `python core/multi_manager.py --status` and ensure gas balance is > 0.0005 BNB.
+3. Every smart contract write MUST use the two-stage preview-and-execute flow (`contract-call preview` -> verify simulationCode "000000000" -> `contract-call execute`).
+4. If a wallet session expires or disconnects, first run `python core/session_backup_restore.py restore` before prompting the user for QR authentication.
+5. Report all executed transactions with BscScan URLs and structured status tables.
+</binance_agentic_wallet_protocol>
+```
+
+### ⚡ Common Agent Execution Patterns
+* **Audit entire squad connection**: `python core/multi_manager.py --status`
+* **Query balances on BSC**: `python scripts/batch_balance_checker.py`
+* **Run command across all wallets**: `python core/multi_manager.py --run wallet tx-history --limit 5 --json`
+* **Restore dropped credentials**: `python core/session_backup_restore.py restore`
 
 ---
 
